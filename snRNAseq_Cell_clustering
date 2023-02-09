@@ -1,2 +1,17 @@
-###The datasets of wheat root snRNA-seq are stored at the Beijing Institute of Genomics (BIG) Data Center, 
-###Chinese Academy of Sciences, under accession number CRA008788 (https://ngdc.cncb.ac.cn/gsa/s/0Y89AZbE)
+###Step 1: Run cellranger to produce expression matrix
+#built genome
+cellranger mkref --memgb=40 --genome=ak58_genome --fasta=161010_Chinese_Spring_v1.0_pseudomolecules_parts.fasta --genes=161010_Chinese_Spring_v1.0_pseudomolecules_parts.filter.gtf
+#count
+cellranger count --id=ajbk_15000_cell_range_AK58R1 \
+                   --transcriptome=/public/home/xinwang/snRNA/db/wheat_genomeR2 \
+                   --fastqs=/public/home/xinwang/snRNA/fq \
+                   --sample=huanongxiaomai1 \
+                   --expect-cells=15000 \
+                   --localcores=8 \
+                   --localmem=64 \
+                   --include-introns 
+###Step 2: Cell clustering
+
+
+
+
