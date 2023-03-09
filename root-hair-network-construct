@@ -96,7 +96,22 @@ cat *path_edges.txt > epidermis_path_edges.txt
 cat *paths.txt > epidermis_paths.txt
 
 ###SCENIC interfer co-expressed gene regulated network
-
+#creat cis-target databases
+#load software
+cd /public/home/chaohe/create_cisTarget_databases
+fasta_filename="left2right.fa"
+motifs_dir="motifs_cb_format"
+motifs_list_filename="motifs.lst"
+db_prefix="3500-1500"
+nbr_threads=20
+cd /public/home/chaohe/create_cisTarget_databases
+###Score all motifs at once and create rankings
+/public/home/chaohe/create_cisTarget_databases/create_cistarget_motif_databases.py \
+-f "${fasta_filename}" \
+-M "${motifs_dir}" \
+-m "${motifs_list_filename}" \
+-o "${db_prefix}" \
+-t "${nbr_threads}"
 
 
 
