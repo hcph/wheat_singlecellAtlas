@@ -3,4 +3,5 @@ Codes for Asymmetric gene expression and cell type specific regulatory networks 
 
 
 
-![Figure3](https://user-images.githubusercontent.com/71759220/227068726-4b13c964-1a3d-49ac-b262-d942581ad6a6.png)
+
+![Figure3R1](https://user-images.githubusercontent.com/71759220/227068878-c1054e99-2722-4423-8c4b-abb8c09c153e.png)
