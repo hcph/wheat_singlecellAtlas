@@ -1,5 +1,5 @@
 # wheat_singlecellAtlas
-Codes for Asymmetric gene expression and cell type specific regulatory networks in root of bread wheat revealed by single cell multiomics analysis. The datasets of wheat root snRNA-seq are stored at the Beijing Institute of Genomics (BIG) Data Center, Chinese Academy of Sciences, under accession number CRA008788 (https://ngdc.cncb.ac.cn/gsa/s/0Y89AZbE).
+Codes for Asymmetric gene expression and cell type specific regulatory networks in root of bread wheat revealed by single cell multiomics analysis. The datasets of wheat root snRNA-seq are stored at the Beijing Institute of Genomics (BIG) Data Center, Chinese Academy of Sciences, under accession number CRA008788 (https://ngdc.cncb.ac.cn/gsa/browse/CRA008788).
 
 
 
