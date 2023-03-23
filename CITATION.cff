@@ -3,7 +3,7 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: He
     given-names: Chao
-    orcid: https://orcid.org/0000-0000-0000-0000
+    orcid: https://orcid.org/hechao7021@163.com
 title: hcph/wheat_singlecellAtlas: 20230323
 version: v1.0.1
 date-released: 2023-03-23
