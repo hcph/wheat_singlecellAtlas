@@ -35,7 +35,7 @@ cluster0<-cbind(C0[,4],C0[,5],C0[,6])
   clu0 <- clu0[rowSums(clu0) > 0.5,]
   head(clu0)
   write.csv(clu0,"C0.cbindout.csv")
-#计算欧氏距离
+#Calculate the Euclidean distance
 centers<-t(matrix(c(0.33,0.33,0.33,1,0,0,0,1,0,0,0,1,0,0.5,0.5,0.5,0,0.5,0.5,0.5,0), nrow=3))
 colnames(centers)<-c("A","B","D")
 rownames(centers)<-c("Central","A.dominant","B.dominant","D.dominant","A.suppressed","B.suppressed","D.suppressed")
