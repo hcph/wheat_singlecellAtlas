@@ -1,0 +1,382 @@
+#######分析
+# this function is a wrapper that computes and plots correlation matrices of cell types 
+# it takes as input average cell type matrices and differentially expressed genes
+# it calculates correlation significance with a permutation test (1000 permutations)
+# requires the functions in the file Comparative_functions.R: 
+# requires the package corrplot
+
+# input:
+# ExpressionTableSpecies1 = data.frame with the average expression data by cell type in Species 1 (e.g. output of the AverageExpression function in Seurat)
+# DEgenesSpecies1 = vector with the names of the genes differentially expressed among the cell types of the Species 1 set
+# ExpressionTableSpecies2 - data.frame with the average expression data by cell type in Species 2
+# DEgenesSpecies2 = vector with the names of the genes differentially expressed among the cell types of the Species 2 set
+# species1 = c('turtle','lizard','mouse')
+# species2 = c('turtle','lizard','mouse','human','chicken')
+# filename = to save plots (in pdf)
+# Height and Width are plot parameters
+
+# returns a plot and a list:
+# - plot with correlation matrices calculated by taking (1) the intersection of DE genes in the two species, (2) the union of DE genes, (3) only the DE genes in Species 1, (4) only the DE genes in Species 2. 
+# - plot with correlation matrices calculated by taking intersect, union, Species1 or Species2 differentially expressed transcription factors
+#
+# list with all the correlation matrices (intersect, intersect.TF, union, union.TF, species1, species1.TF, species2, species2.TF)
+
+#####小麦和水稻的相似性#导入水稻的数据集
+filename <- "result"
+Species1 = "rice"
+species1 = "rice"
+Species2 = "wheat"
+species2 = "wheat"
+Height <- 6
+Width <- 8
+setwd("D:/ZLH/大修/与其它物种的相似性")
+#rice <- read.csv("rice2wheatgene_average_exp.csv")
+ExpressionTableSpecies1 <- read.csv("OsRoots_averageExp.csv",row.names=1)
+ExpressionTableSpecies2 <- read.csv("D:/ZLH/文章图表/pbmc.pesedo.bulk.csv",row.names=1)
+head(ExpressionTableSpecies1)
+head(ExpressionTableSpecies2)
+#DEgenesSpecies1 <- read.csv("rice2wheatgene_enriched_genes.csv")
+DEgenesSpecies1 <- read.csv("rice_enriched_genes.csv")
+#rice_gene <- rice_gene[,c(7,6)]
+#head(rice_gene)
+#g1 = as.matrix(rice_gene)            
+#g2 = apply(g1,2,as.numeric)       ##转变成数字矩阵，但第一列全部为NA
+#rownames(g2)= g1[,1]              ##删除NA列
+#DEgenesSpecies1 = g2[,2]
+#head(DEgenesSpecies1)
+DEgenesSpecies1 <- DEgenesSpecies1[,c(7)]
+head(DEgenesSpecies1)
+#DEgenesSpecies2 <- read.csv("wheatmarker_filterRice.csv")
+DEgenesSpecies2 <- read.csv("D:/ZLH/文章图表/1dim49-2dim49-0.8-all.marker-hzau.csv")
+DEgenesSpecies2 <- DEgenesSpecies2[,c(8)]
+head(DEgenesSpecies2)
+
+CorrComparePlot <- function(ExpressionTableSpecies1, DEgenesSpecies1, ExpressionTableSpecies2, DEgenesSpecies2, Species1, Species2, filename, Height=12, Width=10) {
+  
+  Method1 = "intersect"
+  comp.intersect <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method1,corr.method="spearman")
+  comp_table.intersect <- t(comp.intersect[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+  p_table.intersect <- t(comp.intersect[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+  p_table.intersect <- (-p_table.intersect)
+  
+  comp.intersect.TF <- SpPermuteTF(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method1,corr.method="spearman")
+  comp_table.intersect.TF <- t(comp.intersect.TF[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect.TF[[1]])])
+  p_table.intersect.TF <- t(comp.intersect.TF[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect.TF[[1]])])
+  p_table.intersect.TF <- (-p_table.intersect.TF)
+  
+  Method2 = "union"
+  comp.union <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method2,corr.method="spearman")
+  comp_table.union <- t(comp.union[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.union[[1]])])
+  p_table.union <- t(comp.union[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.union[[1]])])
+  p_table.union <- (-p_table.union)
+  
+  comp.union.TF <- SpPermuteTF(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method2,corr.method="spearman")
+  comp_table.union.TF <- t(comp.union.TF[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.union.TF[[1]])])
+  p_table.union.TF <- t(comp.union.TF[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.union.TF[[1]])])
+  p_table.union.TF <- (-p_table.union.TF)
+  
+  Method3 = "species1"
+  comp.species1 <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method3,corr.method="spearman")
+  comp_table.species1 <- t(comp.species1[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+  p_table.species1 <- t(comp.species1[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+  p_table.species1 <- (-p_table.species1)
+  
+  comp.species1.TF <- SpPermuteTF(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method3,corr.method="spearman")
+  comp_table.species1.TF <- t(comp.species1.TF[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1.TF[[1]])])
+  p_table.species1.TF <- t(comp.species1.TF[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1.TF[[1]])])
+  p_table.species1.TF <- (-p_table.species1.TF)
+  
+  Method4 = "species2"
+  comp.species2 <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method4,corr.method="spearman")
+  comp_table.species2 <- t(comp.species2[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+  p_table.species2 <- t(comp.species2[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+  p_table.species2 <- (-p_table.species2)
+  
+  comp.species2.TF <- SpPermuteTF(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method4,corr.method="spearman")
+  comp_table.species2.TF <- t(comp.species2.TF[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species2.TF[[1]])])
+  p_table.species2.TF <- t(comp.species2.TF[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species2.TF[[1]])])
+  p_table.species2.TF <- (-p_table.species2.TF)
+  
+  pdf(paste0(filename, ".pdf"), height=Height, width = Width)
+  
+  col1 <- colorRampPalette(c("darkblue", "white","darkred"))
+  par(mfrow=c(2,2), oma=c(0,0,2,0)+0.5)
+  
+  corrplot(comp_table.intersect, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.intersect),max(comp_table.intersect)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.intersect, col=col1(200), main= paste(Method1,",",comp.intersect[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+  
+  corrplot(comp_table.union, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.union),max(comp_table.union)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.union, col=col1(200), main= paste(Method2,",",comp.union[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+  
+  corrplot(comp_table.species1, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species1),max(comp_table.species1)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species1, col=col1(200), main= paste(Method3,",",comp.species1[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")  
+  
+  corrplot(comp_table.species2, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species2),max(comp_table.species2)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species2, col=col1(200), main= paste(Method4,",",comp.species2[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 	
+  
+  mtext(paste(length(DEgenesSpecies1), Species1, "genes", "and", length(DEgenesSpecies2),  Species2,"genes,","all genes", sep=" "),outer=T)
+  
+  #par(mfrow=c(2,2), oma=c(0,0,2,0) + 0.5)
+  
+  #corrplot(comp_table.intersect.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.intersect.TF),max(comp_table.intersect.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.intersect.TF, col=col1(200), main= paste(Method1,",",comp.intersect.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 
+  
+  #corrplot(comp_table.union.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.union.TF),max(comp_table.union.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.union.TF, col=col1(200), main= paste(Method2,",",comp.union.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+  
+  #corrplot(comp_table.species1.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species1.TF),max(comp_table.species1.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species1.TF, col=col1(200), main= paste(Method3,",",comp.species1.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 
+  
+  #corrplot(comp_table.species2.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species2.TF),max(comp_table.species2.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species2.TF, col=col1(200), main= paste(Method4,",",comp.species2.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 
+  
+  #mtext(paste(length(DEgenesSpecies1),  Species1, "genes","and", length(DEgenesSpecies2),  Species2,"genes,","transcription factors", sep=" "),outer=T)
+  
+  dev.off()
+  
+  #objects.to.return = list(comp.intersect, comp.intersect.TF, comp.union, comp.union.TF, comp.species1, comp.species1.TF, comp.species2, comp.species2.TF)
+  objects.to.return = list(comp.intersect, comp.union, comp.species1, comp.species2)
+  #names(objects.to.return)  = c("intersect","intersect.TF","union", "union.TF","species1","species1.TF","species2","species2.TF")
+  names(objects.to.return)  = c("intersect", "union", "species1","species2")
+  return(objects.to.return)	
+}
+####调整细胞类型顺序
+comp_table.intersect <- t(comp.intersect[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+p_table.intersect <- t(comp.intersect[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+p_table.intersect <- (-p_table.intersect)
+head(comp_table.intersect)
+head(p_table.intersect)
+row.names(comp_table.intersect) <- c("epidermis/cortex","immature_pericycle","meristem_I","proximal_meristem",
+                                     "xylem_pole_pericycl","provascular_Cells","root_hair","meristem","root_hair",
+                                     "phloem_pole_pericycle","endodermis","metaxylem","epidermis/cortex","protoxylem",
+                                     "immature_sieve_elements","root_cap","protophloem","endodermis",
+                                     "stem_cell_niche","root_border_cell","columella","companion_cell")
+colnames(comp_table.intersect) <- c("cortex","epidermis/root_hair","endodermis","exodermis","epidermis/root_hair","meristem",
+                                    "sclerenchyma","vascular_cylinder","exodermis","epidermis/root_hair","vascular_cylinder",
+                                    "meristem","xylem","endodermis","putative_root_cap_junction","pericycle","xylem","phloem",
+                                    "meristem","meristem","undefined")
+row.names(p_table.intersect) <- c("epidermis/cortex","immature_pericycle","meristem_I","proximal_meristem",
+                                  "xylem_pole_pericycl","provascular_Cells","root_hair","meristem","root_hair",
+                                  "phloem_pole_pericycle","endodermis","metaxylem","epidermis/cortex","protoxylem",
+                                  "immature_sieve_elements","root_cap","protophloem","endodermis",
+                                  "stem_cell_niche","root_border_cell","columella","companion_cell")
+colnames(p_table.intersect) <- c("cortex","epidermis/root_hair","endodermis","exodermis","epidermis/root_hair","meristem",
+                                 "sclerenchyma","vascular_cylinder","exodermis","epidermis/root_hair","vascular_cylinder",
+                                 "meristem","xylem","endodermis","putative_root_cap_junction","pericycle","xylem","phloem",
+                                 "meristem","meristem","undefined")
+comp_table.intersect <- comp_table.intersect[c(11,18,1,13,7,9,19,3,8,4,6,2,10,5,17,22,14,12,15,20,16,21),]
+comp_table.intersect <- comp_table.intersect[,c(1,2,5,10,3,14,4,9,6,12,19,20,8,11,16,18,13,17,7,15,21)]
+p_table.intersect <- p_table.intersect[c(11,18,1,13,7,9,19,3,8,4,6,2,10,5,17,22,14,12,15,20,16,21),]
+p_table.intersect <- p_table.intersect[,c(1,2,5,10,3,14,4,9,6,12,19,20,8,11,16,18,13,17,7,15,21)]
+pdf("wheat_rice_correlation.pdf")
+corrplot(comp_table.intersect,
+         tl.pos="lt", method="color", tl.col="black", 
+         tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",
+         p.mat=p_table.intersect, col=col1(200), main= paste(Method1,",",comp.intersect[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+dev.off()
+
+#####小麦和拟南芥的相似性
+#导入水稻的数据集
+filename <- "wheat_araR2"
+Species1 = "wheat"
+species1 = "wheat"
+Species2 = "arabidopsis"
+species2 = "arabidopsis"
+Height <- 6
+Width <- 8
+setwd("D:/ZLH/大修/与其它物种的相似性")
+#ExpressionTableSpecies2 <- read.csv("AtRoot_averageExp.csv",row.names = 1)
+ara <- read.csv("Ara_average_exp.csv")
+#长变宽
+library(tidyverse)
+library(ggtern)
+library(hrbrthemes)
+library(ggtext)
+library(ggplot2)
+library(patchwork)
+ara <- ara[,1:3]
+ExpressionTableSpecies2 <- spread(ara,cluster.id,avg.exp)
+row.names(ExpressionTableSpecies2) <- ExpressionTableSpecies2[,1]
+ExpressionTableSpecies2 <- ExpressionTableSpecies2[,-1]
+head(ExpressionTableSpecies2)
+ExpressionTableSpecies1 <- read.csv("D:/ZLH/文章图表/pbmc.pesedo.bulk.csv",row.names=1)
+head(ExpressionTableSpecies1)
+
+#DEgenesSpecies1 <- read.csv("rice2wheatgene_enriched_genes.csv")
+DEgenesSpecies2 <- read.csv("Arabidopsis_enriched_genes.csv")
+DEgenesSpecies2 <- DEgenesSpecies2[,c(8)]
+head(DEgenesSpecies2)
+#DEgenesSpecies2 <- read.csv("wheatmarker_filterRice.csv")
+DEgenesSpecies1 <- read.csv("D:/ZLH/文章图表/1dim49-2dim49-0.8-all.marker-hzau.csv")
+DEgenesSpecies1 <- DEgenesSpecies1[,c(8)]
+head(DEgenesSpecies1)
+
+###SpPermute  Compare_species_function4wheatAra.R
+Method1 = "intersect"
+comp.intersect <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method1,corr.method="spearman")
+comp_table.intersect <- t(comp.intersect[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+p_table.intersect <- t(comp.intersect[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+p_table.intersect <- (-p_table.intersect)
+
+Method2 = "union"
+comp.union <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method2,corr.method="spearman")
+comp_table.union <- t(comp.union[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.union[[1]])])
+p_table.union <- t(comp.union[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.union[[1]])])
+p_table.union <- (-p_table.union)
+
+Method3 = "species1"
+comp.species1 <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method3,corr.method="spearman")
+comp_table.species1 <- t(comp.species1[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+p_table.species1 <- t(comp.species1[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+p_table.species1 <- (-p_table.species1)
+
+Method4 = "species2"
+comp.species2 <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method4,corr.method="spearman")
+comp_table.species2 <- t(comp.species2[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+p_table.species2 <- t(comp.species2[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+p_table.species2 <- (-p_table.species2)
+
+pdf(paste0(filename, ".pdf"), height=Height, width = Width)
+library(corrplot)
+library(ggplot2)
+col1 <- colorRampPalette(c("darkblue", "white","darkred"))
+par(mfrow=c(2,2), oma=c(0,0,2,0)+0.5)
+
+corrplot(comp_table.intersect, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.intersect),max(comp_table.intersect)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.intersect, col=col1(200), main= paste(Method1,",",comp.intersect[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+
+corrplot(comp_table.union, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.union),max(comp_table.union)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.union, col=col1(200), main= paste(Method2,",",comp.union[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+
+corrplot(comp_table.species1, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species1),max(comp_table.species1)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species1, col=col1(200), main= paste(Method3,",",comp.species1[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")  
+
+corrplot(comp_table.species2, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species2),max(comp_table.species2)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species2, col=col1(200), main= paste(Method4,",",comp.species2[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 	
+
+mtext(paste(length(DEgenesSpecies1), Species1, "genes", "and", length(DEgenesSpecies2),  Species2,"genes,","all genes", sep=" "),outer=T)
+
+#par(mfrow=c(2,2), oma=c(0,0,2,0) + 0.5)
+
+#corrplot(comp_table.intersect.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.intersect.TF),max(comp_table.intersect.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.intersect.TF, col=col1(200), main= paste(Method1,",",comp.intersect.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 
+
+#corrplot(comp_table.union.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.union.TF),max(comp_table.union.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.union.TF, col=col1(200), main= paste(Method2,",",comp.union.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+
+#corrplot(comp_table.species1.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species1.TF),max(comp_table.species1.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species1.TF, col=col1(200), main= paste(Method3,",",comp.species1.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 
+
+#corrplot(comp_table.species2.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species2.TF),max(comp_table.species2.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species2.TF, col=col1(200), main= paste(Method4,",",comp.species2.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 
+
+#mtext(paste(length(DEgenesSpecies1),  Species1, "genes","and", length(DEgenesSpecies2),  Species2,"genes,","transcription factors", sep=" "),outer=T)
+
+dev.off()
+#####调整细胞类型顺序
+comp_table.intersect <- t(comp.intersect[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+p_table.intersect <- t(comp.intersect[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+p_table.intersect <- (-p_table.intersect)
+head(comp_table.intersect)
+head(p_table.intersect)
+row.names(comp_table.intersect) <- c("root_cap","stele/vacular_cell","epidermal/non_root_hair","epidermal/root_hair",
+                                     "undefined_cell","meristematic","meristematic","root_cap","stele/vacular_cell",
+                                     "stele/vacular_cell","meristematic","cortex","root_cap","xylem",
+                                     "stele/vacular_cell","endodermis","endodermis","phloem","epidermal/non_root_hair","epidermal/root_hair","phloem","endodermis")
+colnames(comp_table.intersect) <- c("epidermis/cortex","immature_pericycle","meristem_I","proximal_meristem",
+                                    "xylem_pole_pericycl","provascular_Cells","root_hair","meristem","root_hair",
+                                    "phloem_pole_pericycle","endodermis","metaxylem","epidermis/cortex","protoxylem",
+                                    "immature_sieve_elements","root_cap","protophloem","endodermis",
+                                    "stem_cell_niche","root_border_cell","columella","companion_cell")
+row.names(p_table.intersect) <- c("root_cap","stele/vacular_cell","epidermal/non_root_hair","epidermal/root_hair",
+                                  "undefined_cell","meristematic","meristematic","root_cap","stele/vacular_cell",
+                                  "stele/vacular_cell","meristematic","cortex","root_cap","xylem",
+                                  "stele/vacular_cell","endodermis","endodermis","phloem","epidermal/non_root_hair","epidermal/root_hair","phloem","endodermis")
+colnames(p_table.intersect) <- c("epidermis/cortex","immature_pericycle","meristem_I","proximal_meristem",
+                                 "xylem_pole_pericycl","provascular_Cells","root_hair","meristem","root_hair",
+                                 "phloem_pole_pericycle","endodermis","metaxylem","epidermis/cortex","protoxylem",
+                                 "immature_sieve_elements","root_cap","protophloem","endodermis",
+                                 "stem_cell_niche","root_border_cell","columella","companion_cell")
+comp_table.intersect <- comp_table.intersect[c(16,17,22,3,19,4,20,1,8,13,6,7,11,12,2,9,10,15,18,21,14,5),]
+comp_table.intersect <- comp_table.intersect[,c(11,18,1,13,7,9,19,3,8,4,6,2,10,5,17,22,14,12,15,20,16,21)]
+p_table.intersect <- p_table.intersect[c(16,17,22,3,19,4,20,1,8,13,6,7,11,12,2,9,10,15,18,21,14,5),]
+p_table.intersect <- p_table.intersect[,c(11,18,1,13,7,9,19,3,8,4,6,2,10,5,17,22,14,12,15,20,16,21)]
+pdf("wheat_ara_correlation.pdf")
+corrplot(comp_table.intersect,
+         tl.pos="lt", method="color", tl.col="black", 
+         tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",
+         p.mat=p_table.intersect, col=col1(200), main= paste(Method1,",",comp.intersect[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+dev.off()
+
+
+
+#####小麦和玉米的相似性
+#导入水稻的数据集
+filename <- "wheat_maize"
+Species1 = "wheat"
+species1 = "wheat"
+Species2 = "maize"
+species2 = "maize"
+Height <- 6
+Width <- 8
+setwd("D:/ZLH/大修/与其它物种的相似性")
+ExpressionTableSpecies2 <- read.csv("maize_averge_expression.csv",row.names=1)
+head(ExpressionTableSpecies2)
+ExpressionTableSpecies1 <- read.csv("D:/ZLH/文章图表/pbmc.pesedo.bulk.csv",row.names=1)
+head(ExpressionTableSpecies1)
+#DEgenesSpecies1 <- read.csv("rice2wheatgene_enriched_genes.csv")
+DEgenesSpecies2 <- read.csv("maize_enriched_genes.csv")
+DEgenesSpecies2 <- DEgenesSpecies2[,c(9)]
+head(DEgenesSpecies2)
+#DEgenesSpecies2 <- read.csv("wheatmarker_filterRice.csv")
+DEgenesSpecies1 <- read.csv("D:/ZLH/文章图表/1dim49-2dim49-0.8-all.marker-hzau.csv")
+DEgenesSpecies1 <- DEgenesSpecies1[,c(8)]
+head(DEgenesSpecies1)
+
+CorrComparePlot <- function(ExpressionTableSpecies1, DEgenesSpecies1, ExpressionTableSpecies2, DEgenesSpecies2, Species1, Species2, filename, Height=12, Width=10) {
+  
+  Method1 = "intersect"
+  comp.intersect <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method1,corr.method="spearman")
+  comp_table.intersect <- t(comp.intersect[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+  p_table.intersect <- t(comp.intersect[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.intersect[[1]])])
+  p_table.intersect <- (-p_table.intersect)
+  
+  Method2 = "union"
+  comp.union <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method2,corr.method="spearman")
+  comp_table.union <- t(comp.union[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.union[[1]])])
+  p_table.union <- t(comp.union[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.union[[1]])])
+  p_table.union <- (-p_table.union)
+  
+  Method3 = "species1"
+  comp.species1 <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method3,corr.method="spearman")
+  comp_table.species1 <- t(comp.species1[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+  p_table.species1 <- t(comp.species1[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+  p_table.species1 <- (-p_table.species1)
+  
+  Method4 = "species2"
+  comp.species2 <- SpPermute(ExpressionTableSpecies1, species1=Species1, DEgenesSpecies1, ExpressionTableSpecies2, species2=Species2, DEgenesSpecies2, nPermutations=1000, genes.use= Method4,corr.method="spearman")
+  comp_table.species2 <- t(comp.species2[[1]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+  p_table.species2 <- t(comp.species2[[3]][1:ncol(ExpressionTableSpecies1),(ncol(ExpressionTableSpecies1)+1):nrow(comp.species1[[1]])])
+  p_table.species2 <- (-p_table.species2)
+
+  pdf(paste0(filename, ".pdf"), height=Height, width = Width)
+  
+  col1 <- colorRampPalette(c("darkblue", "white","darkred"))
+  par(mfrow=c(2,2), oma=c(0,0,2,0)+0.5)
+  
+  corrplot(comp_table.intersect, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.intersect),max(comp_table.intersect)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.intersect, col=col1(200), main= paste(Method1,",",comp.intersect[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+  
+  corrplot(comp_table.union, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.union),max(comp_table.union)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.union, col=col1(200), main= paste(Method2,",",comp.union[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+  
+  corrplot(comp_table.species1, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species1),max(comp_table.species1)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species1, col=col1(200), main= paste(Method3,",",comp.species1[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")  
+  
+  corrplot(comp_table.species2, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species2),max(comp_table.species2)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species2, col=col1(200), main= paste(Method4,",",comp.species2[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 	
+  
+  mtext(paste(length(DEgenesSpecies1), Species1, "genes", "and", length(DEgenesSpecies2),  Species2,"genes,","all genes", sep=" "),outer=T)
+  
+  #par(mfrow=c(2,2), oma=c(0,0,2,0) + 0.5)
+  
+  #corrplot(comp_table.intersect.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.intersect.TF),max(comp_table.intersect.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.intersect.TF, col=col1(200), main= paste(Method1,",",comp.intersect.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 
+  
+  #corrplot(comp_table.union.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.union.TF),max(comp_table.union.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.union.TF, col=col1(200), main= paste(Method2,",",comp.union.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l")
+  
+  #corrplot(comp_table.species1.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species1.TF),max(comp_table.species1.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species1.TF, col=col1(200), main= paste(Method3,",",comp.species1.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 
+  
+  #corrplot(comp_table.species2.TF, order="original",tl.pos="lt", method="color", tl.col="black",cl.lim=c(min(comp_table.species2.TF),max(comp_table.species2.TF)), is.corr=F,tl.cex=0.7, sig.level=(-0.05),insig="pch", pch=19, pch.cex=0.25,pch.col="black",p.mat=p_table.species2.TF, col=col1(200), main= paste(Method4,",",comp.species2.TF[[8]], "genes", sep=" "),mar=c(3,1,5,1),cl.align.text="l") 
+  
+  #mtext(paste(length(DEgenesSpecies1),  Species1, "genes","and", length(DEgenesSpecies2),  Species2,"genes,","transcription factors", sep=" "),outer=T)
+  
+  dev.off()
+  
+  #objects.to.return = list(comp.intersect, comp.intersect.TF, comp.union, comp.union.TF, comp.species1, comp.species1.TF, comp.species2, comp.species2.TF)
+  objects.to.return = list(comp.intersect, comp.union, comp.species1, comp.species2)
+  #names(objects.to.return)  = c("intersect","intersect.TF","union", "union.TF","species1","species1.TF","species2","species2.TF")
+  names(objects.to.return)  = c("intersect", "union", "species1","species2")
+  return(objects.to.return)	
+  
+}
+
